@@ -13,7 +13,12 @@ jobs:
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          sed -i 's/\r//' gradlew
+          unset JAVA_OPTS
+          unset JVM_OPTS
+          ./gradlew assembleDebug --no-daemon
+        env:
+          GRADLE_OPTS: ""
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
