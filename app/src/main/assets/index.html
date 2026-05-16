@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>頑シミュ MHXX</title>
+<style>
+  :root {
+    --bg: #0d1b2a;
+    --bg2: #1a2a3a;
+    --bg3: #243447;
+    --accent: #e8a030;
+    --accent2: #f0c060;
+    --text: #e8e0d0;
+    --text2: #a0b0c0;
+    --border: #2a3a4a;
+    --success: #4caf50;
+    --danger: #e53935;
+    --slot1: #4fc3f7;
+    --slot2: #7986cb;
+    --slot3: #ef5350;
+    --card: #162030;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', 'Yu Gothic', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    overflow-x: hidden;
+  }
+  header {
+    background: var(--bg2);
+    border-bottom: 2px solid var(--accent);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  header .subtitle { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  header .spacer { flex: 1; }
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  .loading-overlay.hidden { display: none; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 4px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    flex: 1; min-width: 70px;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Sections */
+  .section { display: none; padding: 12px; }
+  .section.active { display: block; }
+
+  /* Skill search */
+  .search-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    color: var(--text);
+    width: 100%;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+  ::placeholder { color: var(--text2); }
+
+  .skill-list {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-height: 180px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+  }
+  .skill-item {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .skill-item:last-child { border-bottom: none; }
+  .skill-item:hover, .skill-item:active { background: var(--bg3); }
+  .skill-item .badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: var(--bg3);
+    color: var(--text2);
+  }
+  .skill-item .badge.ken { background: #1a3a5a; color: #7ec8e3; }
+  .skill-item .badge.gun { background: #3a1a1a; color: #e38a7e; }
+
+  /* Selected skills */
+  .selected-skills {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px;
+    margin-bottom: 10px;
+    min-height: 60px;
+  }
+  .selected-skills h3 {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .skill-tag {
+    background: var(--bg3);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .skill-tag .remove {
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: bold;
+  }
+  .empty-msg { color: var(--text2); font-size: 12px; font-style: italic; }
+
+  /* Filter options */
+  .filters {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .filters h3 { font-size: 11px; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; }
+  .filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+  .filter-label { font-size: 12px; color: var(--text2); min-width: 70px; }
+  .filter-btn {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  select.filter-select {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  /* Search button */
+  .btn-search {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--accent), #c87020);
+    color: #000;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+  .btn-search:active { opacity: 0.85; }
+  .btn-search:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Results */
+  .result-header {
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .result-card-header {
+    background: var(--bg2);
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .result-rank {
+    font-size: 11px;
+    color: var(--accent2);
+    font-weight: bold;
+  }
+  .result-skills-preview {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+  .result-card-body { padding: 8px 10px; }
+  .equip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .equip-row:last-child { border-bottom: none; }
+  .equip-part {
+    font-size: 10px;
+    color: var(--text2);
+    min-width: 24px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: var(--bg3);
+    text-align: center;
+    margin-right: 6px;
+  }
+  .equip-name { flex: 1; }
+  .equip-slots { display: flex; gap: 3px; margin-left: 6px; }
+  .slot-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: bold;
+    color: #000;
+  }
+  .slot-dot.s1 { background: var(--slot1); }
+  .slot-dot.s2 { background: var(--slot2); }
+  .slot-dot.s3 { background: var(--slot3); }
+  .slot-dot.empty { background: var(--bg3); color: var(--text2); }
+
+  .active-skills-list {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .active-skill-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 2px 0;
+  }
+  .active-skill-item .skill-ok { color: var(--success); }
+  .active-skill-item .skill-pts { color: var(--text2); }
+
+  /* Decos section */
+  .deco-usage {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* Equipment list tab */
+  .equip-filter-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .equip-table-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .equip-list-item {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+  }
+  .equip-list-item:last-child { border-bottom: none; }
+  .equip-list-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .equip-list-meta { font-size: 11px; color: var(--text2); display: flex; flex-wrap: wrap; gap: 8px; }
+  .equip-list-skills { font-size: 11px; margin-top: 3px; color: var(--accent2); }
+  .slot-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 10px; }
+
+  /* No results */
+  .no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+  }
+  .no-results .icon { font-size: 40px; margin-bottom: 10px; }
+  .no-results p { font-size: 13px; }
+
+  /* Progress */
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.1s;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* About tab */
+  .about-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .about-card h3 { color: var(--accent); margin-bottom: 8px; font-size: 14px; }
+  .about-card p { margin-bottom: 6px; }
+
+  /* ===== 護石タブ ===== */
+  .charm-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  .charm-empty .icon { font-size: 40px; margin-bottom: 10px; }
+  .charm-section-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 14px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .charm-skill-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .charm-skill-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .charm-skill-sys {
+    font-size: 10px;
+    color: var(--text2);
+    background: var(--bg3);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .charm-specs-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .charm-spec-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+  .charm-spec-tag.lv3 { color: #ef5350; border-color: #ef535066; background: #ef535011; }
+  .charm-spec-tag.lv2 { color: #ffa726; border-color: #ffa72666; background: #ffa72611; }
+  .charm-spec-tag.lv1 { color: #66bb6a; border-color: #66bb6a66; background: #66bb6a11; }
+  .charm-combo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .charm-combo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .charm-combo-rank {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--accent);
+  }
+  .charm-combo-slots {
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .charm-combo-body {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .charm-combo-sys {
+    display: inline-block;
+    color: var(--accent2);
+    margin-right: 4px;
+  }
+  .charm-note {
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--bg2);
+    border-left: 3px solid var(--accent);
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    border-radius: 0 4px 4px 0;
+    line-height: 1.6;
+  }
+  .charm-result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 7px;
+    margin-top: 4px;
+    color: var(--accent2);
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="color:var(--text2);font-size:13px;">データ読み込み中...</div>
+</div>
+
+<header>
+  <div>
+    <h1>⚔ 頑シミュ MHXX</h1>
+    <div class="subtitle">スキルシミュレータ ver.0.9</div>
+  </div>
+  <div class="spacer"></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('search')">🔍 検索</div>
+  <div class="tab" onclick="switchTab('results')">📋 結果</div>
+  <div class="tab" onclick="switchTab('charms')">🔮 護石</div>
+  <div class="tab" onclick="switchTab('equips')">🛡 防具</div>
+  <div class="tab" onclick="switchTab('decos')">💎 装飾品</div>
+  <div class="tab" onclick="switchTab('about')">ℹ 情報</div>
+</div>
+
+<!-- SEARCH TAB -->
+<div class="section active" id="tab-search">
+  <div class="selected-skills">
+    <h3>選択中のスキル</h3>
+    <div class="selected-tags" id="selectedTags">
+      <span class="empty-msg">スキルを選択してください</span>
+    </div>
+  </div>
+
+  <input type="search" class="search-box" id="skillSearch" placeholder="🔍 スキル名を入力..." oninput="filterSkills()">
+  <div class="skill-list" id="skillList"></div>
+
+  <div class="filters">
+    <h3>フィルター</h3>
+    <div class="filter-row">
+      <span class="filter-label">武器タイプ</span>
+      <button class="filter-btn active" onclick="setFilter('type','both',this)">両方</button>
+      <button class="filter-btn" onclick="setFilter('type','ken',this)">剣士</button>
+      <button class="filter-btn" onclick="setFilter('type','gun',this)">ガンナー</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">性別</span>
+      <button class="filter-btn active" onclick="setFilter('gender','both',this)">両方</button>
+      <button class="filter-btn" onclick="setFilter('gender','male',this)">男性</button>
+      <button class="filter-btn" onclick="setFilter('gender','female',this)">女性</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">装飾品</span>
+      <button class="filter-btn active" onclick="setFilter('deco','yes',this)">使用する</button>
+      <button class="filter-btn" onclick="setFilter('deco','no',this)">なし</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">最大件数</span>
+      <select class="filter-select" id="maxResults">
+        <option value="10">10件</option>
+        <option value="20" selected>20件</option>
+        <option value="50">50件</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn-search" id="btnSearch" onclick="startSearch()">🔎 防具を検索</button>
+</div>
+
+<!-- RESULTS TAB -->
+<div class="section" id="tab-results">
+  <div class="result-header" id="resultHeader">検索を実行してください</div>
+  <div class="progress-bar" id="progressBar" style="display:none">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div id="resultList"></div>
+</div>
+
+<!-- CHARMS TAB -->
+<div class="section" id="tab-charms">
+  <div id="charmContent">
+    <div class="charm-empty">
+      <div class="icon">🔮</div>
+      <p>「検索」タブでスキルを選択すると<br>必要な護石の候補が表示されます</p>
+    </div>
+  </div>
+</div>
+
+<!-- EQUIPS TAB -->
+<div class="section" id="tab-equips">
+  <div class="equip-filter-row">
+    <button class="filter-btn active" onclick="filterEquipPart('all',this)">全部</button>
+    <button class="filter-btn" onclick="filterEquipPart('head',this)">頭</button>
+    <button class="filter-btn" onclick="filterEquipPart('body',this)">胴</button>
+    <button class="filter-btn" onclick="filterEquipPart('arm',this)">腕</button>
+    <button class="filter-btn" onclick="filterEquipPart('wst',this)">腰</button>
+    <button class="filter-btn" onclick="filterEquipPart('leg',this)">脚</button>
+  </div>
+  <input type="search" class="search-box" id="equipSearch" placeholder="🔍 防具名を入力..." oninput="renderEquipList()">
+  <div id="equipList"></div>
+</div>
+
+<!-- DECOS TAB -->
+<div class="section" id="tab-decos">
+  <input type="search" class="search-box" id="decoSearch" placeholder="🔍 装飾品名を入力..." oninput="renderDecoList()">
+  <div id="decoList"></div>
+</div>
+
+<!-- ABOUT TAB -->
+<div class="section" id="tab-about">
+  <div class="about-card">
+    <h3>⚔ 頑シミュ MHXX Android版</h3>
+    <p>「モンスターハンターダブルクロス」のスキルシミュレータです。</p>
+    <p>発動させたいスキルを選択し、対応する防具の組み合わせを検索できます。</p>
+  </div>
+  <div class="about-card">
+    <h3>📖 使い方</h3>
+    <p>1. 「検索」タブでスキルを選択</p>
+    <p>2. フィルターを設定（剣士/ガンナー、性別など）</p>
+    <p>3. 「防具を検索」ボタンを押す</p>
+    <p>4. 「結果」タブで組み合わせを確認</p>
+  </div>
+  <div class="about-card">
+    <h3>📊 データについて</h3>
+    <p>元データ: 頑シミュ MHXX ver.0.9 (2017/3/26)</p>
+    <p>原作者: masax_mh 様</p>
+    <p>データ提供: kiranico様・葛様 他</p>
+  </div>
+  <div class="about-card">
+    <h3>⚠ 注意事項</h3>
+    <p>スキル加点+2、護石系統倍加は現在正しく検索されません。（原作と同様）</p>
+    <p>本ツールは非公式のファン製作物です。</p>
+  </div>
+</div>
+
+<script>
+// ===== APP STATE =====
+let DB = { skills: [], systems: [], equips: [], decos: [], fukugo: [] };
+let selectedSkills = []; // {name, system}
+let filters = { type: 'both', gender: 'both', deco: 'yes' };
+let currentEquipPart = 'all';
+let searchResults = [];
+
+// ===== INIT =====
+async function init() {
+  try {
+    const [skillData, equipsData, decosData, fukugoData] = await Promise.all([
+      loadJSON('data/skills.json'),
+      loadJSON('data/equips.json'),
+      loadJSON('data/decos.json'),
+      loadJSON('data/fukugo.json'),
+    ]);
+    DB.skills = skillData.skills;
+    DB.systems = skillData.systems;
+    DB.equips = equipsData;
+    DB.decos = decosData;
+    DB.fukugo = fukugoData;
+
+    renderSkillList('');
+    renderEquipList();
+    renderDecoList();
+
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  } catch(e) {
+    document.getElementById('loadingOverlay').innerHTML =
+      '<div style="color:#e53935;text-align:center;padding:20px">データ読み込み失敗<br>' + e.message + '</div>';
+  }
+}
+
+function loadJSON(path) {
+  return new Promise((resolve, reject) => {
+    try {
+      // Try Android bridge first
+      if (window.AndroidBridge) {
+        const text = AndroidBridge.readAsset(path);
+        if (text) { resolve(JSON.parse(text)); return; }
+      }
+    } catch(e) {}
+    // Fallback: fetch (for browser testing)
+    fetch(path).then(r => r.json()).then(resolve).catch(reject);
+  });
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const tabs = ['search','results','charms','equips','decos','about'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ===== SKILL MANAGEMENT =====
+function filterSkills() {
+  const q = document.getElementById('skillSearch').value;
+  renderSkillList(q);
+}
+
+function renderSkillList(query) {
+  const list = document.getElementById('skillList');
+  // Get unique skill names that activate (positive point)
+  const activatingSkills = DB.skills.filter(s => s.point > 0);
+  // Deduplicate by name
+  const seen = new Set();
+  const unique = activatingSkills.filter(s => {
+    if (seen.has(s.name)) return false;
+    seen.add(s.name); return true;
+  });
+  // Filter by query
+  const filtered = query
+    ? unique.filter(s => s.name.includes(query) || s.system.includes(query))
+    : unique;
+  // Limit display
+  const shown = filtered.slice(0, 50);
+
+  list.innerHTML = shown.map(s => {
+    const sel = selectedSkills.find(x => x.name === s.name);
+    const typeBadge = s.type === 1 ? '<span class="badge ken">剣</span>'
+                    : s.type === 2 ? '<span class="badge gun">弓</span>'
+                    : '';
+    return `<div class="skill-item" onclick="toggleSkill('${s.name.replace(/'/g,"\\'")}','${s.system.replace(/'/g,"\\'")}')">
+      <span>${sel ? '✓ ' : ''}${s.name}</span>
+      <span>${typeBadge}</span>
+    </div>`;
+  }).join('');
+
+  if (shown.length === 0) {
+    list.innerHTML = '<div class="skill-item"><span class="empty-msg">スキルが見つかりません</span></div>';
+  }
+}
+
+function toggleSkill(name, system) {
+  const idx = selectedSkills.findIndex(s => s.name === name);
+  if (idx >= 0) {
+    selectedSkills.splice(idx, 1);
+  } else {
+    if (selectedSkills.length >= 5) {
+      alert('最大5スキルまで選択できます');
+      return;
+    }
+    selectedSkills.push({ name, system });
+  }
+  renderSelectedTags();
+  renderSkillList(document.getElementById('skillSearch').value);
+  renderCharmCandidates();
+}
+
+function removeSkill(name) {
+  selectedSkills = selectedSkills.filter(s => s.name !== name);
+  renderSelectedTags();
+  renderSkillList(document.getElementById('skillSearch').value);
+  renderCharmCandidates();
+}
+
+function renderSelectedTags() {
+  const container = document.getElementById('selectedTags');
+  if (selectedSkills.length === 0) {
+    container.innerHTML = '<span class="empty-msg">スキルを選択してください</span>';
+    return;
+  }
+  container.innerHTML = selectedSkills.map(s =>
+    `<div class="skill-tag">
+      <span>${s.name}</span>
+      <span class="remove" onclick="removeSkill('${s.name.replace(/'/g,"\\'")}')">×</span>
+    </div>`
+  ).join('');
+}
+
+// ===== FILTERS =====
+function setFilter(key, value, btn) {
+  filters[key] = value;
+  // Toggle active state within same filter-row
+  btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ===== SEARCH ENGINE =====
+function startSearch() {
+  if (selectedSkills.length === 0) {
+    alert('スキルを1つ以上選択してください');
+    return;
+  }
+
+  switchTab('results');
+  document.getElementById('resultHeader').textContent = '検索中...';
+  document.getElementById('progressBar').style.display = 'block';
+  document.getElementById('resultList').innerHTML = '';
+  document.getElementById('progressFill').style.width = '0%';
+
+  // Defer to allow UI update
+  setTimeout(() => runSearch(), 50);
+}
+
+function runSearch() {
+  const targetSystems = selectedSkills.map(s => s.system);
+  const useDeco = filters.deco === 'yes';
+  const typeFilter = filters.type;   // both/ken/gun
+  const genderFilter = filters.gender; // both/male/female
+  const maxResults = parseInt(document.getElementById('maxResults').value);
+
+  // Get required points for each selected skill
+  const requiredPoints = {};
+  selectedSkills.forEach(s => {
+    const skillDef = DB.skills.find(x => x.name === s.name);
+    if (skillDef) requiredPoints[s.system] = skillDef.point;
+  });
+
+  // Filter equips by type and gender
+  function equipOk(e) {
+    if (typeFilter === 'ken' && e.type === 2) return false;
+    if (typeFilter === 'gun' && e.type === 1) return false;
+    if (genderFilter === 'male' && e.gender === 2) return false;
+    if (genderFilter === 'female' && e.gender === 1) return false;
+    return true;
+  }
+
+  // Pre-filter equipment by relevance (has at least one target system skill)
+  function isRelevant(e) {
+    return Object.keys(e.skills).some(sys => targetSystems.includes(sys));
+  }
+
+  const partNames = ['head','body','arm','wst','leg'];
+  const partLabel = { head:'頭', body:'胴', arm:'腕', wst:'腰', leg:'脚' };
+
+  // Get pools per part - include "none" option (no armor)
+  const pools = {};
+  partNames.forEach(p => {
+    const relevant = DB.equips.filter(e => e.part === p && equipOk(e) && isRelevant(e));
+    // Also include top-slot pieces even if no skill match (for decoration slots)
+    const highSlot = useDeco ? DB.equips.filter(e => e.part === p && equipOk(e) && e.slots >= 2 && !relevant.find(r => r.name === e.name)) : [];
+    pools[p] = [...relevant, ...highSlot];
+    // Always include "none" (skip this slot)
+    pools[p].push({ name: 'なし', part: p, gender: 0, type: 0, rare: 0, slots: 0, skills: {} });
+  });
+
+  // Decoration index: system -> list of decos
+  const decoIndex = {};
+  if (useDeco) {
+    DB.decos.forEach(d => {
+      Object.keys(d.skills).forEach(sys => {
+        if (!decoIndex[sys]) decoIndex[sys] = [];
+        decoIndex[sys].push(d);
+      });
+    });
+  }
+
+  // Calculate skill points from a combination
+  function calcPoints(combo, extraSlots) {
+    const pts = {};
+    combo.forEach(e => {
+      Object.entries(e.skills).forEach(([sys, val]) => {
+        pts[sys] = (pts[sys] || 0) + val;
+      });
+    });
+    // Add decoration contributions (greedy fill by slot size)
+    if (useDeco && extraSlots > 0) {
+      // Sort target systems by how many points we still need
+      const needed = {};
+      targetSystems.forEach(sys => {
+        const have = pts[sys] || 0;
+        const req = requiredPoints[sys] || 10;
+        if (have < req) needed[sys] = req - have;
+      });
+      // Fill slots greedily
+      let slotsLeft = extraSlots;
+      while (slotsLeft > 0) {
+        let bestDeco = null;
+        let bestSys = null;
+        let bestGain = 0;
+        for (const [sys, gap] of Object.entries(needed)) {
+          if (gap <= 0) continue;
+          const decos = decoIndex[sys] || [];
+          decos.forEach(d => {
+            if (d.slots <= slotsLeft) {
+              const gain = Math.min(d.skills[sys] || 0, gap);
+              if (gain > bestGain) { bestGain = gain; bestDeco = d; bestSys = sys; }
+            }
+          });
+        }
+        if (!bestDeco) break;
+        pts[bestSys] = (pts[bestSys] || 0) + (bestDeco.skills[bestSys] || 0);
+        needed[bestSys] -= bestGain;
+        slotsLeft -= bestDeco.slots;
+      }
+    }
+    return pts;
+  }
+
+  function meetsRequirements(pts) {
+    return targetSystems.every(sys => (pts[sys] || 0) >= (requiredPoints[sys] || 10));
+  }
+
+  // Greedy search: iterate combos
+  const results = [];
+  const partPools = partNames.map(p => pools[p]);
+
+  // Limit pool sizes for performance
+  const MAX_PER_PART = 30;
+  const limitedPools = partPools.map(pool => {
+    // Sort by relevance score
+    pool.sort((a, b) => {
+      const scoreA = targetSystems.reduce((s, sys) => s + Math.abs(a.skills[sys] || 0), 0) + a.slots * 0.5;
+      const scoreB = targetSystems.reduce((s, sys) => s + Math.abs(b.skills[sys] || 0), 0) + b.slots * 0.5;
+      return scoreB - scoreA;
+    });
+    return pool.slice(0, MAX_PER_PART);
+  });
+
+  let totalCombos = limitedPools.reduce((p, pool) => p * pool.length, 1);
+  let checked = 0;
+
+  // Iterative search with pruning
+  function searchCombos() {
+    const [pool0, pool1, pool2, pool3, pool4] = limitedPools;
+    for (let i0 = 0; i0 < pool0.length && results.length < maxResults * 3; i0++) {
+      const e0 = pool0[i0];
+      const pts0 = {};
+      Object.entries(e0.skills).forEach(([s,v]) => pts0[s] = (pts0[s]||0)+v);
+      let slots0 = e0.slots;
+
+      for (let i1 = 0; i1 < pool1.length && results.length < maxResults * 3; i1++) {
+        const e1 = pool1[i1];
+        const pts1 = {...pts0};
+        Object.entries(e1.skills).forEach(([s,v]) => pts1[s] = (pts1[s]||0)+v);
+        let slots1 = slots0 + e1.slots;
+
+        for (let i2 = 0; i2 < pool2.length && results.length < maxResults * 3; i2++) {
+          const e2 = pool2[i2];
+          const pts2 = {...pts1};
+          Object.entries(e2.skills).forEach(([s,v]) => pts2[s] = (pts2[s]||0)+v);
+          let slots2 = slots1 + e2.slots;
+
+          for (let i3 = 0; i3 < pool3.length && results.length < maxResults * 3; i3++) {
+            const e3 = pool3[i3];
+            const pts3 = {...pts2};
+            Object.entries(e3.skills).forEach(([s,v]) => pts3[s] = (pts3[s]||0)+v);
+            let slots3 = slots2 + e3.slots;
+
+            for (let i4 = 0; i4 < pool4.length && results.length < maxResults * 3; i4++) {
+              const e4 = pool4[i4];
+              const combo = [e0, e1, e2, e3, e4];
+              const totalSlots = slots3 + e4.slots;
+              const pts = calcPoints(combo, totalSlots);
+
+              if (meetsRequirements(pts)) {
+                // Score: fewer "none" pieces, more matching skills, more slots
+                const noneCount = combo.filter(e => e.name === 'なし').length;
+                const skillScore = targetSystems.reduce((s, sys) => s + Math.min(pts[sys]||0, requiredPoints[sys]||10), 0);
+                const slotScore = totalSlots;
+                results.push({
+                  combo, pts, totalSlots,
+                  score: skillScore * 10 - noneCount * 5 + slotScore
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Update progress
+      document.getElementById('progressFill').style.width = Math.round((i0 / pool0.length) * 100) + '%';
+    }
+  }
+
+  try {
+    searchCombos();
+  } catch(e) { console.error(e); }
+
+  // Deduplicate and sort
+  const seen = new Set();
+  const unique = results.filter(r => {
+    const key = r.combo.map(e => e.name).join('|');
+    if (seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+  unique.sort((a, b) => b.score - a.score);
+  searchResults = unique.slice(0, maxResults);
+
+  document.getElementById('progressBar').style.display = 'none';
+  renderResults(searchResults, requiredPoints, partLabel, useDeco);
+}
+
+function renderResults(results, requiredPoints, partLabel, useDeco) {
+  const header = document.getElementById('resultHeader');
+  const list = document.getElementById('resultList');
+
+  if (results.length === 0) {
+    header.textContent = '結果: 0件';
+    list.innerHTML = `<div class="no-results">
+      <div class="icon">😓</div>
+      <p>条件を満たす防具の組み合わせが見つかりませんでした。</p>
+      <p style="margin-top:8px">フィルターを緩めるか、スキルを減らしてみてください。</p>
+    </div>`;
+    return;
+  }
+
+  header.textContent = `結果: ${results.length}件`;
+  const partNames = ['head','body','arm','wst','leg'];
+
+  list.innerHTML = results.map((r, idx) => {
+    const comboHtml = r.combo.map(e => {
+      const slotDots = renderSlotDots(e.slots);
+      return `<div class="equip-row">
+        <span class="equip-part">${partLabel[e.part]}</span>
+        <span class="equip-name">${e.name}</span>
+        <div class="equip-slots">${slotDots}</div>
+      </div>`;
+    }).join('');
+
+    const activeSkills = selectedSkills.map(s => {
+      const pts = r.pts[s.system] || 0;
+      const req = requiredPoints[s.system] || 10;
+      const ok = pts >= req;
+      return `<div class="active-skill-item">
+        <span class="${ok ? 'skill-ok' : ''}">${ok ? '✓' : '⚠'} ${s.name}</span>
+        <span class="skill-pts">${pts}/${req}</span>
+      </div>`;
+    }).join('');
+
+    const extraSkillSystems = Object.keys(r.pts).filter(sys =>
+      !selectedSkills.find(s => s.system === sys) && r.pts[sys] > 0
+    );
+    const extraSkills = extraSkillSystems.slice(0, 4).map(sys => {
+      const activeSk = DB.skills.find(s => s.system === sys && s.point > 0 && r.pts[sys] >= s.point);
+      return activeSk ? `<span style="font-size:10px;color:var(--text2);margin-right:6px">+${activeSk.name}</span>` : '';
+    }).join('');
+
+    // 護石推薦: この防具セットを補完する護石スペックを計算
+    const charmBadges = selectedSkills.map(s => {
+      const pts = r.pts[s.system] || 0;
+      const req = requiredPoints[s.system] || 10;
+      const gap = req - pts;
+      if (gap <= 0) return '';
+      // この組み合わせに必要な護石ポイント
+      return `<span class="charm-result-badge">🔮 ${s.system}+${gap}以上の護石</span>`;
+    }).filter(Boolean).join(' ');
+
+    return `<div class="result-card">
+      <div class="result-card-header" onclick="toggleResultBody(${idx})">
+        <div>
+          <div class="result-rank">#${idx+1} — 空きスロット: ${r.totalSlots}</div>
+          <div class="result-skills-preview">${activeSkills.replace(/<[^>]+>/g,'').replace(/\n/g,' ')}</div>
+        </div>
+        <span style="color:var(--text2);font-size:18px" id="arrow${idx}">▼</span>
+      </div>
+      <div class="result-card-body" id="body${idx}">
+        ${comboHtml}
+        <div class="active-skills-list">
+          ${activeSkills}
+          ${extraSkills ? `<div style="margin-top:6px">${extraSkills}</div>` : ''}
+        </div>
+        ${charmBadges ? `<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${charmBadges}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleResultBody(idx) {
+  const body = document.getElementById('body' + idx);
+  const arrow = document.getElementById('arrow' + idx);
+  const hidden = body.style.display === 'none';
+  body.style.display = hidden ? 'block' : 'none';
+  arrow.textContent = hidden ? '▲' : '▼';
+}
+
+function renderSlotDots(slots) {
+  let html = '';
+  for (let i = 0; i < 3; i++) {
+    if (i < slots) {
+      const cls = slots === 1 ? 's1' : slots === 2 ? 's2' : 's3';
+      html += `<div class="slot-dot ${cls}">${slots}</div>`;
+    } else {
+      html += `<div class="slot-dot empty">○</div>`;
+    }
+  }
+  return html;
+}
+
+// ===== EQUIP LIST =====
+function filterEquipPart(part, btn) {
+  currentEquipPart = part;
+  document.querySelectorAll('#tab-equips .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEquipList();
+}
+
+function renderEquipList() {
+  const container = document.getElementById('equipList');
+  const query = document.getElementById('equipSearch').value;
+  const partLabel = { head:'頭', body:'胴', arm:'腕', wst:'腰', leg:'脚' };
+
+  let equips = DB.equips;
+  if (currentEquipPart !== 'all') equips = equips.filter(e => e.part === currentEquipPart);
+  if (query) equips = equips.filter(e => e.name.includes(query));
+  equips = equips.slice(0, 100);
+
+  if (equips.length === 0) {
+    container.innerHTML = '<div class="no-results"><p>防具が見つかりません</p></div>';
+    return;
+  }
+
+  container.innerHTML = `<div class="equip-table-container">${equips.map(e => {
+    const skills = Object.entries(e.skills).map(([sys, val]) =>
+      `${sys}${val > 0 ? '+' : ''}${val}`).join('、');
+    return `<div class="equip-list-item">
+      <div class="equip-list-name">
+        <span class="equip-part" style="margin-right:6px">${partLabel[e.part]}</span>
+        ${e.name}
+        <span style="margin-left:6px;font-size:10px;color:var(--text2)">S${e.slots}</span>
+      </div>
+      ${skills ? `<div class="equip-list-skills">${skills}</div>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+
+  if (equips.length >= 100) {
+    container.innerHTML += '<div style="text-align:center;padding:10px;font-size:11px;color:var(--text2)">上位100件を表示。検索で絞り込んでください。</div>';
+  }
+}
+
+// ===== DECO LIST =====
+function renderDecoList() {
+  const container = document.getElementById('decoList');
+  const query = document.getElementById('decoSearch').value;
+  let decos = DB.decos;
+  if (query) decos = decos.filter(d => d.name.includes(query) || Object.keys(d.skills).some(s => s.includes(query)));
+
+  container.innerHTML = `<div class="equip-table-container">${decos.map(d => {
+    const skills = Object.entries(d.skills).map(([sys, val]) =>
+      `${sys}${val > 0 ? '+' : ''}${val}`).join('、');
+    return `<div class="equip-list-item">
+      <div class="equip-list-name">
+        💎 ${d.name}
+        <span style="margin-left:6px;font-size:10px;color:var(--text2)">スロ${d.slots}</span>
+      </div>
+      ${skills ? `<div class="equip-list-skills">${skills}</div>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ===== 護石候補 (CHARM CANDIDATES) =====
+// MHXXの護石スペック:
+//   系統1ポイント: -8～+10, 系統2ポイント: -8～+10, スロット: 0～3
+// 護石が単独で発動できる場合と装飾品と組み合わせる場合を表示
+
+function renderCharmCandidates() {
+  const container = document.getElementById('charmContent');
+  if (!container) return;
+
+  if (selectedSkills.length === 0) {
+    container.innerHTML = `
+      <div class="charm-empty">
+        <div class="icon">🔮</div>
+        <p>「検索」タブでスキルを選択すると<br>必要な護石の候補が表示されます</p>
+      </div>`;
+    return;
+  }
+
+  // 選択スキルのシステム別必要ポイントを収集
+  const targetSystems = {};
+  selectedSkills.forEach(s => {
+    const skillObj = DB.skills.find(sk => sk.name === s.name);
+    if (skillObj) {
+      // 必要ポイント = 発動に必要なポイント（正の発動スキル）
+      const reqPt = Math.abs(skillObj.point);
+      if (!targetSystems[s.system] || targetSystems[s.system] < reqPt) {
+        targetSystems[s.system] = reqPt;
+      }
+    }
+  });
+
+  const sysList = Object.entries(targetSystems); // [[system, reqPt], ...]
+
+  // ───────────────────────────
+  // セクション1: 各スキルの護石スペック
+  // ───────────────────────────
+  let html = `
+    <div class="charm-note">
+      🔮 選択中のスキルを発動させるために<br>
+      <strong>お守りに必要なスキル系統ポイント</strong>を表示します。<br>
+      護石の最大付与ポイントは系統1本で最大+10です。
+    </div>
+    <div class="charm-section-title">📌 スキル系統と必要ポイント</div>`;
+
+  sysList.forEach(([sys, reqPt]) => {
+    // 装飾品で補えるポイント計算
+    let decoMax = 0;
+    if (DB.decos && DB.decos.length > 0) {
+      const sysDecos = DB.decos.filter(d => d.skills && d.skills[sys]);
+      if (sysDecos.length > 0) {
+        // 最大スロット3個分のデコ補給量
+        const bestDeco = sysDecos.reduce((best, d) =>
+          (d.skills[sys] || 0) > (best.skills[sys] || 0) ? d : best, sysDecos[0]);
+        const decoSlots = bestDeco.slots || 1;
+        const decoVal = bestDeco.skills[sys] || 0;
+        const maxSlots = 3;
+        decoMax = Math.floor(maxSlots / decoSlots) * decoVal;
+      }
+    }
+
+    // 護石単独で必要な最低ポイントのパターン生成
+    const specs = [];
+    // パターン1: 護石単独で発動
+    if (reqPt <= 10) {
+      specs.push({ label: `護石単独: ${sys}+${reqPt}以上`, level: 3 });
+    }
+    // パターン2: 護石+装飾品1スロット
+    for (let decoSlotBonus = 1; decoSlotBonus <= Math.min(decoMax, reqPt - 1); decoSlotBonus++) {
+      const charmNeeded = reqPt - decoSlotBonus;
+      if (charmNeeded >= 1 && charmNeeded < reqPt) {
+        specs.push({ label: `護石+装飾品: ${sys}+${charmNeeded}以上`, level: decoSlotBonus <= 3 ? 2 : 1 });
+        break; // 最低要件のみ表示
+      }
+    }
+    // パターン3: 装飾品フル活用
+    if (decoMax >= reqPt) {
+      specs.push({ label: `装飾品のみで発動可 (護石不要)`, level: 1 });
+    }
+
+    html += `
+      <div class="charm-skill-row">
+        <div class="charm-skill-name">
+          ${selectedSkills.find(s => s.system === sys)?.name || sys}
+          <span class="charm-skill-sys">${sys}系統 / 必要${reqPt}pt</span>
+        </div>
+        <div class="charm-specs-grid">
+          ${specs.map(sp => `<div class="charm-spec-tag lv${sp.level}">${sp.label}</div>`).join('')}
+        </div>
+      </div>`;
+  });
+
+  // ───────────────────────────
+  // セクション2: 護石候補一覧（1系統・2系統の組み合わせ）
+  // ───────────────────────────
+  html += `<div class="charm-section-title">🔮 護石候補一覧（推薦スペック）</div>`;
+
+  // 護石候補: 選択系統を1本または2本カバーする組み合わせを生成
+  const charmCandidates = [];
+
+  // MHXX護石の最大スペック:
+  //   系統1: 最大+10, 系統2: 最大+10 (ただし合計は制限あり)
+  // 実用的な候補を列挙（高ポイント→低ポイント）
+  const CHARM_MAX = 10; // 1系統の最大pt
+  const SLOT_OPTIONS = [3, 2, 1, 0];
+
+  // 1系統のケース
+  sysList.forEach(([sys, reqPt]) => {
+    // 単独発動可能な最低ポイント
+    for (let pt = Math.min(CHARM_MAX, reqPt); pt >= Math.max(1, reqPt - 5); pt--) {
+      SLOT_OPTIONS.slice(0, 2).forEach(slots => {
+        charmCandidates.push({
+          sys1: sys, pt1: pt,
+          sys2: null, pt2: 0,
+          slots,
+          covers: sysList.filter(([s, r]) => s === sys && pt >= r).map(([s]) => s),
+          score: pt * 10 + slots * 2 + (pt >= reqPt ? 30 : 0)
+        });
+      });
+    }
+  });
+
+  // 2系統のケース（選択スキルが2つ以上の場合）
+  if (sysList.length >= 2) {
+    for (let i = 0; i < sysList.length; i++) {
+      for (let j = i + 1; j < sysList.length; j++) {
+        const [sys1, req1] = sysList[i];
+        const [sys2, req2] = sysList[j];
+        // 両方を部分カバーする組み合わせ
+        const pt1Options = [Math.min(CHARM_MAX, req1), Math.max(1, req1 - 3)];
+        const pt2Options = [Math.min(CHARM_MAX, req2), Math.max(1, req2 - 3)];
+        pt1Options.forEach(pt1 => {
+          pt2Options.forEach(pt2 => {
+            SLOT_OPTIONS.slice(0, 2).forEach(slots => {
+              const covers = [];
+              if (pt1 >= req1) covers.push(sys1);
+              if (pt2 >= req2) covers.push(sys2);
+              charmCandidates.push({
+                sys1, pt1, sys2, pt2, slots, covers,
+                score: (pt1 + pt2) * 8 + slots * 2 + covers.length * 20
+              });
+            });
+          });
+        });
+      }
+    }
+  }
+
+  // スコア降順・重複除去
+  const seen = new Set();
+  const unique = charmCandidates
+    .sort((a, b) => b.score - a.score)
+    .filter(c => {
+      const key = `${c.sys1}:${c.pt1}|${c.sys2||''}:${c.pt2}|${c.slots}`;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    })
+    .slice(0, 15); // 上位15件
+
+  if (unique.length === 0) {
+    html += `<div class="charm-empty" style="padding:20px"><p>候補を生成できませんでした</p></div>`;
+  } else {
+    unique.forEach((c, idx) => {
+      const coversStr = c.covers.length > 0
+        ? c.covers.map(s => `<span style="color:var(--success)">✓${s}</span>`).join(' ')
+        : `<span style="color:var(--text2)">補助</span>`;
+      const slotsStr = '◆'.repeat(c.slots) + '◇'.repeat(3 - c.slots);
+      const sys2Part = c.sys2
+        ? `<span class="charm-combo-sys">${c.sys2}</span>+${c.pt2}`
+        : '';
+
+      html += `
+        <div class="charm-combo-card">
+          <div class="charm-combo-header">
+            <span class="charm-combo-rank">#${idx+1}</span>
+            <span class="charm-combo-slots">スロット: ${slotsStr}</span>
+          </div>
+          <div class="charm-combo-body">
+            <span class="charm-combo-sys">${c.sys1}</span>+${c.pt1}
+            ${c.sys2 ? ` ／ ${sys2Part}` : ''}
+            <br>
+            発動カバー: ${coversStr}
+          </div>
+        </div>`;
+    });
+  }
+
+  // ───────────────────────────
+  // セクション3: 護石の入手先参考
+  // ───────────────────────────
+  html += `
+    <div class="charm-section-title">📖 護石入手先参考</div>
+    <div class="about-card" style="margin-bottom:8px">
+      <table style="width:100%;font-size:11px;border-collapse:collapse">
+        <tr style="color:var(--accent2);border-bottom:1px solid var(--border)">
+          <td style="padding:4px 0">護石名</td><td style="padding:4px 0">レア</td><td style="padding:4px 0">入手時期</td>
+        </tr>
+        <tr><td>兵士の護石</td><td>Lv1</td><td>集会所★1〜</td></tr>
+        <tr><td>闘士の護石</td><td>Lv2</td><td>集会所★1〜</td></tr>
+        <tr><td>騎士の護石</td><td>Lv3</td><td>集会所★1〜</td></tr>
+        <tr><td>城塞の護石</td><td>Lv4</td><td>集会所★1〜</td></tr>
+        <tr><td>女王の護石</td><td>Lv5</td><td>集会所★4〜</td></tr>
+        <tr><td>王の護石</td><td>Lv6</td><td>集会所★4〜</td></tr>
+        <tr><td>龍の護石</td><td>Lv7</td><td>集会所★4〜</td></tr>
+        <tr><td>英雄の護石</td><td>Lv8</td><td>集会所★10〜</td></tr>
+        <tr><td>伝説の護石</td><td>Lv9</td><td>集会所★10〜</td></tr>
+        <tr><td>天の護石</td><td>Lv10</td><td>集会所★10〜</td></tr>
+      </table>
+      <p style="font-size:10px;color:var(--text2);margin-top:8px">
+        ※護石のスキルポイントはランダムです。レアが高いほど高ポイントが出やすくなります。
+      </p>
+    </div>`;
+
+  container.innerHTML = html;
+}
+
+// ===== START =====
+init();
+</script>
+</body>
+</html>
