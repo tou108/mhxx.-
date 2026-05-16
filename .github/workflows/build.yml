@@ -12,19 +12,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ↓ これを追加：正規のgradle-wrapper.jarをダウンロード
-      - name: Fix gradle-wrapper.jar
+      # gradle-wrapper.jar と gradlew を両方ダウンロードして修正
+      - name: Fix Gradle wrapper
         run: |
           GRADLE_VERSION=8.4
-          curl -L "https://github.com/gradle/gradle/raw/v${GRADLE_VERSION}.0/gradle/wrapper/gradle-wrapper.jar" \
+          curl -L "https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}.0/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
+          curl -L "https://raw.githubusercontent.com/gradle/gradle/v${GRADLE_VERSION}.0/gradlew" \
+            -o gradlew
 
       - name: Build APK
         run: |
           chmod +x gradlew
           sed -i 's/\r//' gradlew
-          unset JAVA_OPTS
-          unset JVM_OPTS
           ./gradlew assembleDebug --no-daemon
         env:
           GRADLE_OPTS: ""
